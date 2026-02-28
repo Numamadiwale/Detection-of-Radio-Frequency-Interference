@@ -1,0 +1,60 @@
+%% below is the entire code used to simulate the RFID (Radio Frequency Identification)
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split as tst
+from sklearn.linear_model import LogisticRegression as lr
+from sklearn import metrics
+sampling_rate=1000
+duration=10
+num_samples=sampling_rate*duration
+time= np.linspace(0,duration,num_samples,endpoint=False)
+clean_signal=np.random.normal(0,0.5,num_samples)
+#define RFI properties
+rfi_freq= 150
+rfi_amplitude=10
+#generating full RFI signal
+RFI_signal=rfi_amplitude*np.sin(2*np.pi*rfi_freq*time)
+#time window for when RFI should be on and off
+rfi_mask=np.zeros(num_samples, dtype=bool)
+#injecting the RFI signal
+rfi_mask[(time>=2)& (time<5)]= True
+rfi_mask[(time>=6)& (time<8)]= True
+#our final RFI signal
+full_rfi_signal= np.zeros(num_samples)
+#copying ony the time segmet when RFI should be on , onto the final RFI signal
+full_rfi_signal[rfi_mask] = RFI_signal[rfi_mask]
+# Observed signal mixed with RFIs
+observed_signal= clean_signal+ full_rfi_signal
+# applying labels on the mask to help the ML model understand true/false
+labels=rfi_mask.astype(int)
+
+
+
+#visualizing the plots for time and frequency
+# Time domain
+plt.figure(figsize=(14,6))
+plt.subplot(2,1,1)
+plt.plot(time, observed_signal, label='observed signal')
+plt.plot(time, labels*np.max(observed_signal)*0.8, 'r--', alpha=0.5, label='True RFI(label)')
+plt.title('Time Domain')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
+plt.grid(color='b', linewidth=3)
+plt.legend(title= "RFI Detection")
+
+#Frequency Domain
+plt.subplot(2,1,2)
+freq=np.fft.fftfreq(num_samples, d=1/sampling_rate)
+spectrum= np.fft.fft(observed_signal)
+mag= np.abs(spectrum)
+pos_freq= freq[:num_samples//2]
+pos_spectrum= mag[:num_samples//2]
+plt.plot(pos_freq,pos_spectrum, color='b', label='In Freq')
+plt.title('Frequency Domain')
+plt.xlabel('Frequency')
+plt.ylabel('Magnitude')
+plt.grid(color='b', linewidth=3)
+plt.xlim(0,200)
+plt.tight_layout()
+plt.show()
